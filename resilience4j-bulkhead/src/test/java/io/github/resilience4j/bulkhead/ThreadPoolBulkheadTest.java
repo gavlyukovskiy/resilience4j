@@ -28,6 +28,8 @@ import org.junit.Test;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -58,17 +60,18 @@ public class ThreadPoolBulkheadTest {
     public void shouldExecuteRunnableAndFailWithBulkHeadFull() throws InterruptedException {
         ThreadPoolBulkhead bulkhead = ThreadPoolBulkhead.of("test", config);
         given(helloWorldService.returnHelloWorld()).willReturn("Hello world");
+        AtomicBoolean inBulkhead = new AtomicBoolean();
         final AtomicReference<Exception> exception = new AtomicReference<>();
 
-        Thread first = new Thread(() -> {
-            try {
-                bulkhead.executeRunnable(() -> Try.run(() -> Thread.sleep(200)));
-            } catch (Exception e) {
-                exception.set(e);
-            }
-
-        });
+        Thread first = new Thread(() -> bulkhead.executeRunnable(() -> {
+            inBulkhead.set(true);
+            Try.run(() -> Thread.sleep(200));
+        }));
         first.start();
+
+        Awaitility.waitAtMost(50, TimeUnit.MILLISECONDS)
+                .pollInterval(5, TimeUnit.MILLISECONDS)
+                .until(inBulkhead::get);
 
         Thread second = new Thread(() -> {
             try {
@@ -99,17 +102,18 @@ public class ThreadPoolBulkheadTest {
     public void shouldExecuteSupplierAndFailWithBulkHeadFull() throws InterruptedException {
         ThreadPoolBulkhead bulkhead = ThreadPoolBulkhead.of("test", config);
         given(helloWorldService.returnHelloWorld()).willReturn("Hello world");
+        AtomicBoolean inBulkhead = new AtomicBoolean();
         final AtomicReference<Exception> exception = new AtomicReference<>();
 
-        Thread first = new Thread(() -> {
-            try {
-                bulkhead.executeSupplier(() -> Try.run(() -> Thread.sleep(200)));
-            } catch (Exception e) {
-                exception.set(e);
-            }
-
-        });
+        Thread first = new Thread(() -> bulkhead.executeRunnable(() -> {
+            inBulkhead.set(true);
+            Try.run(() -> Thread.sleep(200));
+        }));
         first.start();
+
+        Awaitility.waitAtMost(50, TimeUnit.MILLISECONDS)
+                .pollInterval(5, TimeUnit.MILLISECONDS)
+                .until(inBulkhead::get);
 
         Thread second = new Thread(() -> {
             try {
@@ -140,17 +144,18 @@ public class ThreadPoolBulkheadTest {
     public void shouldExecuteCallableAndFailWithBulkHeadFull() throws InterruptedException {
         ThreadPoolBulkhead bulkhead = ThreadPoolBulkhead.of("test", config);
         given(helloWorldService.returnHelloWorld()).willReturn("Hello world");
+        AtomicBoolean inBulkhead = new AtomicBoolean();
         final AtomicReference<Exception> exception = new AtomicReference<>();
 
-        Thread first = new Thread(() -> {
-            try {
-                bulkhead.executeCallable(() -> Try.run(() -> Thread.sleep(200)));
-            } catch (Exception e) {
-                exception.set(e);
-            }
-
-        });
+        Thread first = new Thread(() -> bulkhead.executeRunnable(() -> {
+            inBulkhead.set(true);
+            Try.run(() -> Thread.sleep(200));
+        }));
         first.start();
+
+        Awaitility.waitAtMost(50, TimeUnit.MILLISECONDS)
+                .pollInterval(5, TimeUnit.MILLISECONDS)
+                .until(inBulkhead::get);
 
         Thread second = new Thread(() -> {
             try {
